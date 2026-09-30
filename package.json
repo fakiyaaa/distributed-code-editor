@@ -1,0 +1,14 @@
+{
+  "name": "distributed-code-editor",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run build -w packages/shared && concurrently -n web,server -c cyan,yellow \"npm run dev -w apps/web\" \"npm run dev -w apps/server\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w packages/shared && npm run build -w apps/web && npm run build -w apps/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
