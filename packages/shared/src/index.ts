@@ -18,6 +18,17 @@ export interface WsMessage {
   type: WsMessageType;
 }
 
+// Client → Server
+export interface JoinMessage { type: 'join'; roomId: string; userName: string }
+export interface LeaveMessage { type: 'leave' }
+export type ClientMessage = JoinMessage | LeaveMessage | WsMessage;
+
+// Server → Client
+export interface RoomStateMessage { type: 'room_state'; users: string[] }
+export interface UserJoinedMessage { type: 'user_joined'; userName: string }
+export interface UserLeftMessage  { type: 'user_left';   userName: string }
+export type ServerMessage = RoomStateMessage | UserJoinedMessage | UserLeftMessage | WsMessage;
+
 /** Runtime constant — also verifies @dce/shared resolves at runtime in compiled server. */
 export const WS_CLOSE_CODES = {
   NORMAL: 1000,

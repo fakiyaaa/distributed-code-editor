@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import RoomPanel from '@/components/RoomPanel';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
   ssr: false,
@@ -32,9 +33,12 @@ export default function Home() {
           Distributed Code Editor
         </span>
       </header>
-      <main className="flex-1 overflow-hidden">
-        <CodeEditor value={code} onChange={setCode} />
-      </main>
+      <div className="flex flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden">
+          <CodeEditor value={code} onChange={setCode} />
+        </main>
+        <RoomPanel />
+      </div>
     </div>
   );
 }
