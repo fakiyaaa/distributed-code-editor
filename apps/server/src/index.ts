@@ -74,6 +74,15 @@ wss.on('connection', (ws) => {
 
       if (msg.type === 'leave') leaveRoom(ws);
 
+      if (msg.type === 'edit') {
+        const info = clientInfo.get(ws)!;
+        if (!info.roomId) return;
+        const room = rooms.get(info.roomId);
+        if (room) {
+          broadcast(room, { type: 'remote_edit', content: msg.content, userName: info.userName }, ws);
+        }
+      }
+
       if (msg.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' } satisfies ServerMessage));
       }
