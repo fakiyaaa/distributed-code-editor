@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import RoomPanel from '@/components/RoomPanel';
+import { useRoom } from '@/hooks/useRoom';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
   ssr: false,
@@ -12,6 +13,8 @@ const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
     </div>
   ),
 });
+
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001';
 
 const INITIAL_CODE = `// Distributed Code Editor
 // Collaborative editing coming soon.
@@ -24,7 +27,19 @@ console.log(greet("world"));
 `;
 
 export default function Home() {
-  const [code, setCode] = useState(INITIAL_CODE);
+  const [code, setCode]   = useState(INITIAL_CODE);
+  const suppressRef       = useRef(false);
+
+  const { status, users, join, leave, sendEdit } = useRoom(WS_URL, (content) => {
+    suppressRef.current = true;
+    setCode(content);
+  });
+
+  const handleEditorChange = (value: string) => {
+    setCode(value);
+    if (suppressRef.current) { suppressRef.current = false; return; }
+    sendEdit(value);
+  };
 
   return (
     <div className="flex h-screen flex-col bg-gray-900 text-white">
@@ -35,9 +50,9 @@ export default function Home() {
       </header>
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-hidden">
-          <CodeEditor value={code} onChange={setCode} />
+          <CodeEditor value={code} onChange={handleEditorChange} />
         </main>
-        <RoomPanel />
+        <RoomPanel status={status} users={users} onJoin={join} onLeave={leave} />
       </div>
     </div>
   );

@@ -5,10 +5,15 @@ import type { ClientMessage, ServerMessage } from '@dce/shared';
 
 export type RoomStatus = 'idle' | 'connecting' | 'joined' | 'error';
 
-export function useRoom(wsUrl: string) {
-  const [status, setStatus]   = useState<RoomStatus>('idle');
-  const [users,  setUsers]    = useState<string[]>([]);
-  const wsRef                 = useRef<WebSocket | null>(null);
+export function useRoom(
+  wsUrl: string,
+  onRemoteEdit?: (content: string, from: string) => void,
+) {
+  const [status, setStatus] = useState<RoomStatus>('idle');
+  const [users,  setUsers]  = useState<string[]>([]);
+  const wsRef               = useRef<WebSocket | null>(null);
+  const onRemoteEditRef     = useRef(onRemoteEdit);
+  onRemoteEditRef.current   = onRemoteEdit;         // keep ref fresh without re-creating join
 
   const join = useCallback((roomId: string, userName: string) => {
     wsRef.current?.close();
@@ -17,15 +22,15 @@ export function useRoom(wsUrl: string) {
     setStatus('connecting');
 
     ws.onopen = () => {
-      const msg: ClientMessage = { type: 'join', roomId, userName };
-      ws.send(JSON.stringify(msg));
+      ws.send(JSON.stringify({ type: 'join', roomId, userName } satisfies ClientMessage));
     };
 
     ws.onmessage = (event) => {
       const msg: ServerMessage = JSON.parse(event.data as string);
-      if (msg.type === 'room_state') { setUsers(msg.users); setStatus('joined'); }
+      if (msg.type === 'room_state')  { setUsers(msg.users); setStatus('joined'); }
       if (msg.type === 'user_joined') setUsers((prev) => [...prev, msg.userName]);
       if (msg.type === 'user_left')   setUsers((prev) => prev.filter((u) => u !== msg.userName));
+      if (msg.type === 'remote_edit') onRemoteEditRef.current?.(msg.content, msg.userName);
     };
 
     ws.onclose = () => { setStatus('idle'); setUsers([]); };
@@ -34,13 +39,18 @@ export function useRoom(wsUrl: string) {
 
   const leave = useCallback(() => {
     if (!wsRef.current) return;
-    const msg: ClientMessage = { type: 'leave' };
-    wsRef.current.send(JSON.stringify(msg));
+    wsRef.current.send(JSON.stringify({ type: 'leave' } satisfies ClientMessage));
     wsRef.current.close();
   }, []);
 
-  // clean up on unmount
+  const sendEdit = useCallback((content: string) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'edit', content } satisfies ClientMessage));
+    }
+  }, []);
+
   useEffect(() => () => { wsRef.current?.close(); }, []);
 
-  return { status, users, join, leave };
+  return { status, users, join, leave, sendEdit };
 }

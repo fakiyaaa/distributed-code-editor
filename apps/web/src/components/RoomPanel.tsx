@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRoom, type RoomStatus } from '@/hooks/useRoom';
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001';
+import type { RoomStatus } from '@/hooks/useRoom';
 
 const statusLabel: Record<RoomStatus, string> = {
   idle:       'Not connected',
@@ -12,13 +10,19 @@ const statusLabel: Record<RoomStatus, string> = {
   error:      'Connection error',
 };
 
-export default function RoomPanel() {
+interface RoomPanelProps {
+  status:  RoomStatus;
+  users:   string[];
+  onJoin:  (roomId: string, userName: string) => void;
+  onLeave: () => void;
+}
+
+export default function RoomPanel({ status, users, onJoin, onLeave }: RoomPanelProps) {
   const [roomId,   setRoomId]   = useState('');
   const [userName, setUserName] = useState('');
-  const { status, users, join, leave } = useRoom(WS_URL);
 
   const handleJoin = () => {
-    if (roomId.trim() && userName.trim()) join(roomId.trim(), userName.trim());
+    if (roomId.trim() && userName.trim()) onJoin(roomId.trim(), userName.trim());
   };
 
   return (
@@ -67,15 +71,13 @@ export default function RoomPanel() {
               Users ({users.length})
             </p>
             {users.map((u) => (
-              <p key={u} className="truncate text-sm text-gray-200">
-                {u === userName ? `${u} (you)` : u}
-              </p>
+              <p key={u} className="truncate text-sm text-gray-200">{u}</p>
             ))}
           </div>
 
           <button
             className="mt-auto rounded border border-gray-600 py-1 text-xs text-gray-400 hover:border-red-500 hover:text-red-400"
-            onClick={leave}
+            onClick={onLeave}
           >
             Leave room
           </button>
