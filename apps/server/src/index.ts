@@ -18,7 +18,8 @@ app.get('/health', (_req, res) => {
 interface ClientInfo { userName: string; roomId: string | null }
 
 const clientInfo = new WeakMap<WebSocket, ClientInfo>();
-const rooms = new Map<string, Set<WebSocket>>();
+const rooms     = new Map<string, Set<WebSocket>>();
+const roomSeq   = new Map<string, number>();          // per-room sequence counter
 
 function broadcast(room: Set<WebSocket>, msg: ServerMessage, exclude?: WebSocket) {
   const payload = JSON.stringify(msg);
@@ -34,7 +35,7 @@ function leaveRoom(ws: WebSocket) {
   const room = rooms.get(info.roomId);
   if (room) {
     room.delete(ws);
-    if (room.size === 0) rooms.delete(info.roomId);
+    if (room.size === 0) { rooms.delete(info.roomId); roomSeq.delete(info.roomId); }
     else broadcast(room, { type: 'user_left', userName: info.userName });
   }
   info.roomId = null;
@@ -59,7 +60,10 @@ wss.on('connection', (ws) => {
         info.userName = msg.userName;
         info.roomId   = msg.roomId;
 
-        if (!rooms.has(msg.roomId)) rooms.set(msg.roomId, new Set());
+        if (!rooms.has(msg.roomId)) {
+          rooms.set(msg.roomId, new Set());
+          roomSeq.set(msg.roomId, 0);
+        }
         const room = rooms.get(msg.roomId)!;
         room.add(ws);
 
