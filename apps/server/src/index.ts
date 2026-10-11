@@ -79,7 +79,8 @@ wss.on('connection', (ws) => {
         if (!info.roomId) return;
         const room = rooms.get(info.roomId);
         if (room) {
-          broadcast(room, { type: 'remote_edit', content: msg.content, userName: info.userName }, ws);
+          // seqNum will be properly assigned in the next iteration
+          broadcast(room, { type: 'remote_edit', content: msg.content, userName: info.userName, opId: msg.opId, seqNum: 0 }, ws);
         }
       }
 

@@ -46,7 +46,8 @@ export function useRoom(
   const sendEdit = useCallback((content: string) => {
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'edit', content } satisfies ClientMessage));
+      const opId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      ws.send(JSON.stringify({ type: 'edit', content, opId } satisfies ClientMessage));
     }
   }, []);
 
