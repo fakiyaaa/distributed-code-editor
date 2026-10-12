@@ -3,7 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { WS_CLOSE_CODES } from '@dce/shared';
-import type { ClientMessage, ServerMessage } from '@dce/shared';
+import type { ClientMessage, RemoteEditMessage, ServerMessage } from '@dce/shared';
 
 const app = express();
 app.use(cors());
@@ -19,7 +19,10 @@ interface ClientInfo { userName: string; roomId: string | null }
 
 const clientInfo = new WeakMap<WebSocket, ClientInfo>();
 const rooms     = new Map<string, Set<WebSocket>>();
-const roomSeq   = new Map<string, number>();          // per-room sequence counter
+const roomSeq   = new Map<string, number>();                    // per-room sequence counter
+const roomLog   = new Map<string, RemoteEditMessage[]>();       // per-room op log (last N ops)
+
+const MAX_LOG_SIZE = 100;
 
 function broadcast(room: Set<WebSocket>, msg: ServerMessage, exclude?: WebSocket) {
   const payload = JSON.stringify(msg);
@@ -35,7 +38,7 @@ function leaveRoom(ws: WebSocket) {
   const room = rooms.get(info.roomId);
   if (room) {
     room.delete(ws);
-    if (room.size === 0) { rooms.delete(info.roomId); roomSeq.delete(info.roomId); }
+    if (room.size === 0) { rooms.delete(info.roomId); roomSeq.delete(info.roomId); roomLog.delete(info.roomId); }
     else broadcast(room, { type: 'user_left', userName: info.userName });
   }
   info.roomId = null;
@@ -63,6 +66,7 @@ wss.on('connection', (ws) => {
         if (!rooms.has(msg.roomId)) {
           rooms.set(msg.roomId, new Set());
           roomSeq.set(msg.roomId, 0);
+          roomLog.set(msg.roomId, []);
         }
         const room = rooms.get(msg.roomId)!;
         room.add(ws);
@@ -85,7 +89,13 @@ wss.on('connection', (ws) => {
         if (room) {
           const seq = (roomSeq.get(info.roomId) ?? 0) + 1;
           roomSeq.set(info.roomId, seq);
-          broadcast(room, { type: 'remote_edit', content: msg.content, userName: info.userName, opId: msg.opId, seqNum: seq }, ws);
+          const op: RemoteEditMessage = { type: 'remote_edit', content: msg.content, userName: info.userName, opId: msg.opId, seqNum: seq };
+
+          const log = roomLog.get(info.roomId)!;
+          log.push(op);
+          if (log.length > MAX_LOG_SIZE) log.shift();
+
+          broadcast(room, op, ws);
         }
       }
 
