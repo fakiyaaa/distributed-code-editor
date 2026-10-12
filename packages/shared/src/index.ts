@@ -25,7 +25,7 @@ export interface EditMessage  { type: 'edit'; content: string; opId: string }
 export type ClientMessage = JoinMessage | LeaveMessage | EditMessage | WsMessage;
 
 // Server → Client
-export interface RoomStateMessage  { type: 'room_state';   users: string[] }
+export interface RoomStateMessage  { type: 'room_state';   users: string[]; seqNum: number }
 export interface UserJoinedMessage { type: 'user_joined';  userName: string }
 export interface UserLeftMessage   { type: 'user_left';    userName: string }
 export interface RemoteEditMessage { type: 'remote_edit';  content: string; userName: string; opId: string; seqNum: number }

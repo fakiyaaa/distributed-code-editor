@@ -71,9 +71,10 @@ wss.on('connection', (ws) => {
         const room = rooms.get(msg.roomId)!;
         room.add(ws);
 
-        // tell the joiner who is already here
-        const users = [...room].map((c) => clientInfo.get(c)!.userName);
-        ws.send(JSON.stringify({ type: 'room_state', users } satisfies ServerMessage));
+        // tell the joiner who is already here and the current sequence number
+        const users  = [...room].map((c) => clientInfo.get(c)!.userName);
+        const seqNum = roomSeq.get(msg.roomId) ?? 0;
+        ws.send(JSON.stringify({ type: 'room_state', users, seqNum } satisfies ServerMessage));
 
         // tell everyone else
         broadcast(room, { type: 'user_joined', userName: msg.userName }, ws);
