@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import type { RoomStatus } from '@/hooks/useRoom';
+import type { FaultConfig } from '@/hooks/useFaultSimulator';
+import FaultSimulator from './FaultSimulator';
 
 const statusLabel: Record<RoomStatus, string> = {
   idle:       'Not connected',
@@ -11,13 +13,15 @@ const statusLabel: Record<RoomStatus, string> = {
 };
 
 interface RoomPanelProps {
-  status:  RoomStatus;
-  users:   string[];
-  onJoin:  (roomId: string, userName: string) => void;
-  onLeave: () => void;
+  status:        RoomStatus;
+  users:         string[];
+  onJoin:        (roomId: string, userName: string) => void;
+  onLeave:       () => void;
+  faultConfig:   FaultConfig;
+  onFaultChange: (config: FaultConfig) => void;
 }
 
-export default function RoomPanel({ status, users, onJoin, onLeave }: RoomPanelProps) {
+export default function RoomPanel({ status, users, onJoin, onLeave, faultConfig, onFaultChange }: RoomPanelProps) {
   const [roomId,   setRoomId]   = useState('');
   const [userName, setUserName] = useState('');
 
@@ -83,6 +87,8 @@ export default function RoomPanel({ status, users, onJoin, onLeave }: RoomPanelP
           </button>
         </>
       )}
+
+      <FaultSimulator config={faultConfig} onChange={onFaultChange} />
     </aside>
   );
 }

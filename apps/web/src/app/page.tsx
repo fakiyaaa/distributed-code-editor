@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import RoomPanel from '@/components/RoomPanel';
 import { useRoom } from '@/hooks/useRoom';
+import { useFaultSimulator } from '@/hooks/useFaultSimulator';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
   ssr: false,
@@ -27,18 +28,20 @@ console.log(greet("world"));
 `;
 
 export default function Home() {
-  const [code, setCode]   = useState(INITIAL_CODE);
-  const suppressRef       = useRef(false);
+  const [code, setCode] = useState(INITIAL_CODE);
+  const suppressRef     = useRef(false);
 
   const { status, users, join, leave, sendEdit } = useRoom(WS_URL, (content) => {
     suppressRef.current = true;
     setCode(content);
   });
 
+  const { faultySend, config, setConfig } = useFaultSimulator(sendEdit);
+
   const handleEditorChange = (value: string) => {
     setCode(value);
     if (suppressRef.current) { suppressRef.current = false; return; }
-    sendEdit(value);
+    faultySend(value);
   };
 
   return (
@@ -52,7 +55,14 @@ export default function Home() {
         <main className="flex-1 overflow-hidden">
           <CodeEditor value={code} onChange={handleEditorChange} />
         </main>
-        <RoomPanel status={status} users={users} onJoin={join} onLeave={leave} />
+        <RoomPanel
+          status={status}
+          users={users}
+          onJoin={join}
+          onLeave={leave}
+          faultConfig={config}
+          onFaultChange={setConfig}
+        />
       </div>
     </div>
   );
