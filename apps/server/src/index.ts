@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
-import { WS_CLOSE_CODES } from '@dce/shared';
 import type { ClientMessage, RemoteEditMessage, ServerMessage } from '@dce/shared';
 
 const app = express();
@@ -110,8 +109,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', (code) => {
     leaveRoom(ws);
-    const label = code === WS_CLOSE_CODES.NORMAL ? 'normal' : code;
-    console.log(`[ws] client disconnected (${label})`);
+    console.log(`[ws] client disconnected (code ${code})`);
   });
 });
 
