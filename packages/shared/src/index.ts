@@ -1,6 +1,8 @@
-// Shared types for the distributed code editor.
-// Expand these as features are added.
+// Message protocol for the distributed code editor.
+// Both apps/server and apps/web import from here — changing a type
+// will surface type errors in both places immediately.
 
+// Placeholder interfaces for future persistence / user accounts
 export interface User {
   id: string;
   name: string;
@@ -12,28 +14,51 @@ export interface Room {
   createdAt: string;
 }
 
+// Heartbeat — used to keep the connection alive
 export type WsMessageType = 'ping' | 'pong';
+export interface WsMessage { type: WsMessageType }
 
-export interface WsMessage {
-  type: WsMessageType;
+// ---- Client → Server ------------------------------------------------
+
+export interface JoinMessage {
+  type: 'join';
+  roomId: string;
+  userName: string;
 }
 
-// Client → Server
-export interface JoinMessage { type: 'join'; roomId: string; userName: string }
 export interface LeaveMessage { type: 'leave' }
-export interface EditMessage  { type: 'edit'; content: string; opId: string }
+
+export interface EditMessage {
+  type: 'edit';
+  content: string;  // full document snapshot (not a diff)
+  opId: string;     // client-generated ID, used for duplicate detection
+}
+
+// Discriminated union — narrow with msg.type === '...'
 export type ClientMessage = JoinMessage | LeaveMessage | EditMessage | WsMessage;
 
-// Server → Client
-export interface RoomStateMessage  { type: 'room_state';   users: string[]; seqNum: number }
-export interface UserJoinedMessage { type: 'user_joined';  userName: string }
-export interface UserLeftMessage   { type: 'user_left';    userName: string }
-export interface RemoteEditMessage { type: 'remote_edit';  content: string; userName: string; opId: string; seqNum: number }
-export type ServerMessage = RoomStateMessage | UserJoinedMessage | UserLeftMessage | RemoteEditMessage | WsMessage;
+// ---- Server → Client ------------------------------------------------
 
-/** Runtime constant — also verifies @dce/shared resolves at runtime in compiled server. */
-export const WS_CLOSE_CODES = {
-  NORMAL: 1000,
-  GOING_AWAY: 1001,
-  PROTOCOL_ERROR: 1002,
-} as const;
+export interface RoomStateMessage {
+  type: 'room_state';
+  users: string[];  // everyone currently in the room, including the joiner
+  seqNum: number;   // current sequence position — client starts its buffer here
+}
+
+export interface UserJoinedMessage { type: 'user_joined'; userName: string }
+export interface UserLeftMessage   { type: 'user_left';   userName: string }
+
+export interface RemoteEditMessage {
+  type: 'remote_edit';
+  content: string;   // full document snapshot from the sending client
+  userName: string;  // who sent it
+  opId: string;      // matches the originating EditMessage
+  seqNum: number;    // server-assigned, monotonically increasing per room
+}
+
+export type ServerMessage =
+  | RoomStateMessage
+  | UserJoinedMessage
+  | UserLeftMessage
+  | RemoteEditMessage
+  | WsMessage;
