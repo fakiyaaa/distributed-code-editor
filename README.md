@@ -45,7 +45,7 @@ Each tab has independent fault controls:
 | Setting | Range | Effect |
 |---|---|---|
 | Latency | 0–2000ms | Delays outgoing messages by a fixed amount |
-| Drop rate | 0–50% | Randomly drops outgoing messages |
+| Drop rate | 0–90% | Randomly drops outgoing messages |
 | Duplicate rate | 0–30% | Randomly sends a message twice |
 
 To see out-of-order buffering in action: set latency to 500ms in one tab and type quickly while another user types at the same time. Both editors will eventually converge to the same content.
